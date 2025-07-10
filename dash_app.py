@@ -99,216 +99,6 @@ def generate_fake_data(df):
             "Customer Name": [fake.name() for _ in range(20)],
             "Contact Date": [fake.date_between(start_date="-1y", end_date=end_date) for _ in range(20)],
             "Interaction Type": [random.choice(["Inquiry", "Complaint", "Follow-up", "Feedback", "Service Request"]) for _ in range(20)],
-            "Salesperson": [random.choice(df['Salesperson'].dropna().unique()) for _
-
-System: I apologize for the incomplete response earlier. Below is the complete set of artifacts (`dash_app.py`, `requirements.txt`, and `Procfile`) for the Dash-based Automotive Analytics Dashboard, fully adapted from the provided PyQt5 script. The application retains all components and logic, uses Dash Bootstrap Components for a responsive UI, Plotly for visualizations, and is structured for hosting on Render with compatibility for Android APK deployment via a web interface.
-
-<xaiArtifact artifact_id="f6d4c820-6e96-499d-bba3-614ff13b0e81" artifact_version_id="ed6a042b-2e0a-4bb8-a62b-cd53ce999654" title="dash_app.py" contentType="text/python">
-import dash
-import dash_bootstrap_components as dbc
-from dash import dcc, html, dash_table
-from dash.dependencies import Input, Output, State
-import pandas as pd
-import numpy as np
-from faker import Faker
-import random
-from datetime import datetime
-import plotly.graph_objs as go
-from plotly.subplots import make_subplots
-import logging
-import os
-import base64
-import io
-
-# Set up logging
-log_dir = "/tmp/automotive_dashboard"
-os.makedirs(log_dir, exist_ok=True)
-log_file = os.path.join(log_dir, "dashboard.log")
-logging.basicConfig(
-    filename=log_file,
-    level=logging.DEBUG,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-)
-
-# Initialize Faker
-fake = Faker()
-
-# Initialize Dash app with Bootstrap theme
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
-app.title = "Automotive Analytics Dashboard"
-
-# Generate mock data (same as original)
-def generate_sales_data():
-    try:
-        car_makes = ['Toyota', 'Honda', 'Ford', 'Chevrolet', 'BMW', 'Mercedes', 'Hyundai', 'Volkswagen']
-        car_models = {
-            'Toyota': ['Camry', 'Corolla', 'RAV4'],
-            'Honda': ['Civic', 'Accord', 'CR-V'],
-            'Ford': ['F-150', 'Mustang', 'Explorer'],
-            'Chevrolet': ['Silverado', 'Malibu', 'Equinox'],
-            'BMW': ['3 Series', '5 Series', 'X5'],
-            'Mercedes': ['C-Class', 'E-Class', 'GLC'],
-            'Hyundai': ['Elantra', 'Sonata', 'Tucson'],
-            'Volkswagen': ['Jetta', 'Passat', 'Tiguan']
-        }
-        salespeople = [fake.name() for _ in range(10)]
-        dates = pd.date_range(start="2023-01-01", end="2025-07-07", freq="D")
-        data = {
-            'Salesperson': [random.choice(salespeople) for _ in range(1000)],
-            'Car Make': [random.choice(car_makes) for _ in range(1000)],
-            'Car Year': [random.randint(2018, 2025) for _ in range(1000)],
-            'Date': [random.choice(dates) for _ in range(1000)],
-            'Sale Price': [round(random.uniform(15000, 100000), 2) for _ in range(1000)],
-            'Commission Earned': [round(random.uniform(500, 5000), 2) for _ in range(1000)]
-        }
-        df = pd.DataFrame(data)
-        df['Car Model'] = df['Car Make'].apply(lambda x: random.choice(car_models[x]))
-        df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
-        df['Year'] = df['Date'].dt.year
-        df['Quarter'] = df['Date'].dt.to_period('Q').astype(str)
-        df['Month'] = df['Date'].dt.to_period('M').astype(str)
-        logging.info("Sales data generated successfully")
-        return df
-    except Exception as e:
-        logging.error(f"Error generating sales data: {str(e)}")
-        return pd.DataFrame()
-
-def generate_fake_data(df):
-    try:
-        hr_data = pd.DataFrame({
-            "Employee ID": [f"E{1000+i}" for i in range(10)],
-            "Name": [fake.name() for _ in range(10)],
-            "Role": ["Sales Exec", "Manager", "Technician", "Clerk", "Sales Exec", "Technician", "HR", "Manager", "Clerk", "Sales Exec"],
-            "Department": ["Sales", "Sales", "Service", "Admin", "Sales", "Service", "HR", "Sales", "Admin", "Sales"],
-            "Join Date": pd.date_range(start="2018-01-01", periods=10, freq="180D"),
-            "Salary (USD)": [50000 + i*1500 for i in range(10)],
-            "Performance Score": [round(x, 1) for x in np.random.uniform(2.5, 5.0, 10)]
-        })
-        time_log_data = pd.DataFrame({
-            "Employee ID": np.random.choice(hr_data["Employee ID"], size=30, replace=True),
-            "Date": pd.date_range(end=pd.to_datetime("2025-07-07"), periods=30).tolist(),
-            "Clock In": [f"{np.random.randint(8, 10)}:{str(np.random.randint(0, 60)).zfill(2)} AM" for _ in range(30)],
-            "Clock Out": [f"{np.random.randint(4, 6)+12:{str(np.random.randint(0, 60)).zfill(2)} PM" for _ in range(30)],
-            "Total Hours": [round(np.random.uniform(6.5, 9.5), 1) for _ in range(30)]
-        }).sort_values(by="Date", ascending=False)
-        inventory_data = pd.DataFrame({
-            "Part ID": [f"P{i:04d}" for i in range(1, 21)],
-            "Part Name": [fake.word().capitalize() + " " + random.choice(["Filter", "Brake", "Tire", "Battery", "Sensor", "Pump"]) for _ in range(20)],
-            "Car Make": [random.choice(df['Car Make'].dropna().unique()) for _ in range(20)],
-            "Stock Level": [random.randint(0, 150) for _ in range(20)],
-            "Reorder Level": [random.randint(10, 60) for _ in range(20)],
-            "Unit Cost": [round(random.uniform(20, 600), 2) for _ in range(20)]
-        })
-        end_date = datetime.strptime("2025-07-07", "%Y-%m-%d")
-        crm_data = pd.DataFrame({
-            "Customer ID": [f"C
-
-System: I apologize for the repeated incomplete responses. Below is the complete `dash_app.py` along with `requirements.txt` and `Procfile` for the Dash-based Automotive Analytics Dashboard, fully adapted from the provided PyQt5 script. The application retains all components and logic, uses Dash Bootstrap Components for a responsive UI, Plotly for visualizations, and is structured for hosting on Render with compatibility for Android APK deployment via a web interface. Each artifact is provided separately to ensure clarity and adherence to the requirement of one artifact per response, but I’ll include all three in sequence with unique `artifact_id` values.
-
----
-
-<xaiArtifact artifact_id="be5c5484-31b6-4729-b6d1-83f47430f74c" artifact_version_id="9fe2521d-8071-45b1-934d-61e7593eddfd" title="dash_app.py" contentType="text/python">
-import dash
-import dash_bootstrap_components as dbc
-from dash import dcc, html, dash_table
-from dash.dependencies import Input, Output, State
-import pandas as pd
-import numpy as np
-from faker import Faker
-import random
-from datetime import datetime
-import plotly.graph_objs as go
-from plotly.subplots import make_subplots
-import logging
-import os
-import base64
-import io
-
-# Set up logging
-log_dir = "/tmp/automotive_dashboard"
-os.makedirs(log_dir, exist_ok=True)
-log_file = os.path.join(log_dir, "dashboard.log")
-logging.basicConfig(
-    filename=log_file,
-    level=logging.DEBUG,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-)
-
-# Initialize Faker
-fake = Faker()
-
-# Initialize Dash app with Bootstrap theme
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
-app.title = "Automotive Analytics Dashboard"
-
-# Generate mock data (same as original)
-def generate_sales_data():
-    try:
-        car_makes = ['Toyota', 'Honda', 'Ford', 'Chevrolet', 'BMW', 'Mercedes', 'Hyundai', 'Volkswagen']
-        car_models = {
-            'Toyota': ['Camry', 'Corolla', 'RAV4'],
-            'Honda': ['Civic', 'Accord', 'CR-V'],
-            'Ford': ['F-150', 'Mustang', 'Explorer'],
-            'Chevrolet': ['Silverado', 'Malibu', 'Equinox'],
-            'BMW': ['3 Series', '5 Series', 'X5'],
-            'Mercedes': ['C-Class', 'E-Class', 'GLC'],
-            'Hyundai': ['Elantra', 'Sonata', 'Tucson'],
-            'Volkswagen': ['Jetta', 'Passat', 'Tiguan']
-        }
-        salespeople = [fake.name() for _ in range(10)]
-        dates = pd.date_range(start="2023-01-01", end="2025-07-07", freq="D")
-        data = {
-            'Salesperson': [random.choice(salespeople) for _ in range(1000)],
-            'Car Make': [random.choice(car_makes) for _ in range(1000)],
-            'Car Year': [random.randint(2018, 2025) for _ in range(1000)],
-            'Date': [random.choice(dates) for _ in range(1000)],
-            'Sale Price': [round(random.uniform(15000, 100000), 2) for _ in range(1000)],
-            'Commission Earned': [round(random.uniform(500, 5000), 2) for _ in range(1000)]
-        }
-        df = pd.DataFrame(data)
-        df['Car Model'] = df['Car Make'].apply(lambda x: random.choice(car_models[x]))
-        df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
-        df['Year'] = df['Date'].dt.year
-        df['Quarter'] = df['Date'].dt.to_period('Q').astype(str)
-        df['Month'] = df['Date'].dt.to_period('M').astype(str)
-        logging.info("Sales data generated successfully")
-        return df
-    except Exception as e:
-        logging.error(f"Error generating sales data: {str(e)}")
-        return pd.DataFrame()
-
-def generate_fake_data(df):
-    try:
-        hr_data = pd.DataFrame({
-            "Employee ID": [f"E{1000+i}" for i in range(10)],
-            "Name": [fake.name() for _ in range(10)],
-            "Role": ["Sales Exec", "Manager", "Technician", "Clerk", "Sales Exec", "Technician", "HR", "Manager", "Clerk", "Sales Exec"],
-            "Department": ["Sales", "Sales", "Service", "Admin", "Sales", "Service", "HR", "Sales", "Admin", "Sales"],
-            "Join Date": pd.date_range(start="2018-01-01", periods=10, freq="180D"),
-            "Salary (USD)": [50000 + i*1500 for i in range(10)],
-            "Performance Score": [round(x, 1) for x in np.random.uniform(2.5, 5.0, 10)]
-        })
-        time_log_data = pd.DataFrame({
-            "Employee ID": np.random.choice(hr_data["Employee ID"], size=30, replace=True),
-            "Date": pd.date_range(end=pd.to_datetime("2025-07-07"), periods=30).tolist(),
-            "Clock In": [f"{np.random.randint(8, 10)}:{str(np.random.randint(0, 60)).zfill(2)} AM" for _ in range(30)],
-            "Clock Out": [f"{np.random.randint(4, 6)+12}:{str(np.random.randint(0, 60)).zfill(2)} PM" for _ in range(30)],
-            "Total Hours": [round(np.random.uniform(6.5, 9.5), 1) for _ in range(30)]
-        }).sort_values(by="Date", ascending=False)
-        inventory_data = pd.DataFrame({
-            "Part ID": [f"P{i:04d}" for i in range(1, 21)],
-            "Part Name": [fake.word().capitalize() + " " + random.choice(["Filter", "Brake", "Tire", "Battery", "Sensor", "Pump"]) for _ in range(20)],
-            "Car Make": [random.choice(df['Car Make'].dropna().unique()) for _ in range(20)],
-            "Stock Level": [random.randint(0, 150) for _ in range(20)],
-            "Reorder Level": [random.randint(10, 60) for _ in range(20)],
-            "Unit Cost": [round(random.uniform(20, 600), 2) for _ in range(20)]
-        })
-        end_date = datetime.strptime("2025-07-07", "%Y-%m-%d")
-        crm_data = pd.DataFrame({
-            "Customer ID": [f"C{100+i}" for i in range(20)],
-            "Customer Name": [fake.name() for _ in range(20)],
-            "Contact Date": [fake.date_between(start_date="-1y", end_date=end_date) for _ in range(20)],
-            "Interaction Type": [random.choice(["Inquiry", "Complaint", "Follow-up", "Feedback", "Service Request"]) for _ in range(20)],
             "Salesperson": [random.choice(df['Salesperson'].dropna().unique()) for _ in range(20)],
             "Satisfaction Score": [round(random.uniform(1.0, 5.0), 1) for _ in range(20)]
         })
@@ -584,8 +374,8 @@ def render_tab_content(tab, filtered_data, metric):
                 columns=[
                     {'name': 'Car Make', 'id': 'Car Make'},
                     {'name': 'Car Model', 'id': 'Car Model'},
-                    {'name': 'Avg Sale Price', 'id': 'Avg Sale Price', 'type': 'numeric', 'format': {'specifier': '$.2f'}},
-                    {'name': 'Total Sales', 'id': 'Total Sales', 'type': 'numeric', 'format': {'specifier': '$.2f'}},
+                    {'name': 'Avg Sale Price', 'id': 'Avg Sale Price', 'type': 'numeric', 'format': {'specifier': '$,.2f'}},
+                    {'name': 'Total Sales', 'id': 'Total Sales', 'type': 'numeric', 'format': {'specifier': '$,.2f'}},
                     {'name': 'Transaction Count', 'id': 'Transaction Count'}
                 ],
                 style_table={'overflowX': 'auto'},
@@ -617,8 +407,8 @@ def render_tab_content(tab, filtered_data, metric):
                     data=qoq_df[['Quarter', 'Sale Price QoQ %', 'Commission QoQ %']].to_dict('records'),
                     columns=[
                         {'name': 'Quarter', 'id': 'Quarter'},
-                        {'name': 'Sale Price QoQ %', 'id': 'Sale Price QoQ %', 'type': 'numeric', 'format': {'specifier': '.2f%'}},
-                        {'name': 'Commission QoQ %', 'id': 'Commission QoQ %', 'type': 'numeric', 'format': {'specifier': '.2f%'}}
+                        {'name': 'Sale Price QoQ %', 'id': 'Sale Price QoQ %', 'type': 'numeric', 'format': {'specifier': '.2f'}},
+                        {'name': 'Commission QoQ %', 'id': 'Commission QoQ %', 'type': 'numeric', 'format': {'specifier': '.2f'}}
                     ],
                     style_table={'overflowX': 'auto'},
                     style_cell={'textAlign': 'left', 'backgroundColor': '#2A2A2A', 'color': '#D3D3D3'},
@@ -627,138 +417,223 @@ def render_tab_content(tab, filtered_data, metric):
                 html.H4("Monthly Trend", className="text-white"),
                 dcc.Graph(figure=fig2)
             ])
-        
+
         elif tab == 'tab-hr':
-            if hr_data.empty:
-                return html.P("No data available for HR Overview", className="text-white")
-            fig1 = go.Figure(data=[go.Histogram(x=hr_data['Performance Score'], nbinsx=5, marker_color='#A9A9A9')])
-            fig1.update_layout(title='Performance Distribution', xaxis_title='Performance Score', yaxis_title='Count', template='plotly_dark', height=400)
-            total_hours = time_log_data.groupby('Employee ID')['Total Hours'].sum().reset_index()
-            fig2 = go.Figure(data=[go.Bar(x=total_hours['Employee ID'], y=total_hours['Total Hours'], marker_color='#A9A9A9')])
-            fig2.update_layout(title='Total Logged Hours per Employee', xaxis_title='Employee ID', yaxis_title='Total Hours', template='plotly_dark', xaxis=dict(tickangle=45), height=400)
-            hr_data_display = hr_data.copy()
-            hr_data_display['Join Date'] = hr_data_display['Join Date'].dt.strftime('%Y-%m-%d')
-            hr_data_display['Salary (USD)'] = hr_data_display['Salary (USD)'].apply(lambda x: f"${x:,.2f}")
-            time_log_display = time_log_data.copy()
-            time_log_display['Date'] = time_log_display['Date'].dt.strftime('%Y-%m-%d')
+            if hr_data.empty and time_log_data.empty:
+                return html.P("No HR data available.", className="text-white")
+            
+            hr_table = dash_table.DataTable(
+                data=hr_data.to_dict('records'),
+                columns=[{"name": i, "id": i} for i in hr_data.columns],
+                style_table={'overflowX': 'auto'},
+                style_cell={'textAlign': 'left', 'backgroundColor': '#2A2A2A', 'color': '#D3D3D3'},
+                style_header={'backgroundColor': '#3A3A3A', 'fontWeight': 'bold', 'color': '#D3D3D3'}
+            )
+            
+            time_log_table = dash_table.DataTable(
+                data=time_log_data.to_dict('records'),
+                columns=[{"name": i, "id": i} for i in time_log_data.columns],
+                style_table={'overflowX': 'auto'},
+                style_cell={'textAlign': 'left', 'backgroundColor': '#2A2A2A', 'color': '#D3D3D3'},
+                style_header={'backgroundColor': '#3A3A3A', 'fontWeight': 'bold', 'color': '#D3D3D3'}
+            )
+
+            # Performance Score Distribution
+            perf_fig = go.Figure(data=[go.Histogram(x=hr_data['Performance Score'], marker_color='#A9A9A9')])
+            perf_fig.update_layout(
+                title='Performance Score Distribution',
+                xaxis_title='Performance Score',
+                yaxis_title='Number of Employees',
+                template='plotly_dark',
+                height=400
+            )
+
+            # Salary Distribution
+            salary_fig = go.Figure(data=[go.Histogram(x=hr_data['Salary (USD)'], marker_color='#808080')])
+            salary_fig.update_layout(
+                title='Salary Distribution',
+                xaxis_title='Salary (USD)',
+                yaxis_title='Number of Employees',
+                template='plotly_dark',
+                height=400
+            )
+            
             return html.Div([
-                html.H4("Employee Information & Salary", className="text-white"),
-                dash_table.DataTable(
-                    data=hr_data_display.to_dict('records'),
-                    columns=[{'name': col, 'id': col} for col in hr_data_display.columns],
-                    style_table={'overflowX': 'auto'},
-                    style_cell={'textAlign': 'left', 'backgroundColor': '#2A2A2A', 'color': '#D3D3D3'},
-                    style_header={'backgroundColor': '#3A3A3A', 'fontWeight': 'bold', 'color': '#D3D3D3'}
-                ),
-                html.H4("Performance Distribution", className="text-white"),
-                dcc.Graph(figure=fig1),
-                html.H4("Employee Time Log", className="text-white"),
-                dash_table.DataTable(
-                    data=time_log_display.to_dict('records'),
-                    columns=[{'name': col, 'id': col} for col in time_log_display.columns],
-                    style_table={'overflowX': 'auto'},
-                    style_cell={'textAlign': 'left', 'backgroundColor': '#2A2A2A', 'color': '#D3D3D3'},
-                    style_header={'backgroundColor': '#3A3A3A', 'fontWeight': 'bold', 'color': '#D3D3D3'}
-                ),
-                html.H4("Total Logged Hours per Employee", className="text-white"),
-                dcc.Graph(figure=fig2)
+                html.H4("HR Employee Data", className="text-white"),
+                hr_table,
+                html.Hr(),
+                html.H4("Time Log Data", className="text-white"),
+                time_log_table,
+                html.Hr(),
+                dbc.Row([
+                    dbc.Col(dcc.Graph(figure=perf_fig), width=6),
+                    dbc.Col(dcc.Graph(figure=salary_fig), width=6)
+                ])
             ])
-        
+
         elif tab == 'tab-inventory':
             if inventory_data.empty:
-                return html.P("No data available for Inventory", className="text-white")
-            low_stock = inventory_data[inventory_data['Stock Level'] < inventory_data['Reorder Level']]
-            fig = go.Figure(data=[go.Bar(x=low_stock['Part Name'], y=low_stock['Stock Level'], marker_color='#A9A9A9')])
-            fig.update_layout(title='Low Stock Alert', xaxis_title='Part Name', yaxis_title='Stock Level', template='plotly_dark', xaxis=dict(tickangle=45), height=400)
-            inventory_display = inventory_data.copy()
-            inventory_display['Unit Cost'] = inventory_display['Unit Cost'].apply(lambda x: f"${x:,.2f}")
+                return html.P("No inventory data available.", className="text-white")
+
+            low_stock_parts = inventory_data[inventory_data['Stock Level'] <= inventory_data['Reorder Level']]
+            
+            inventory_table = dash_table.DataTable(
+                data=inventory_data.to_dict('records'),
+                columns=[{"name": i, "id": i} for i in inventory_data.columns],
+                style_table={'overflowX': 'auto'},
+                style_cell={'textAlign': 'left', 'backgroundColor': '#2A2A2A', 'color': '#D3D3D3'},
+                style_header={'backgroundColor': '#3A3A3A', 'fontWeight': 'bold', 'color': '#D3D3D3'}
+            )
+
+            low_stock_table = dash_table.DataTable(
+                data=low_stock_parts.to_dict('records'),
+                columns=[{"name": i, "id": i} for i in low_stock_parts.columns],
+                style_table={'overflowX': 'auto'},
+                style_cell={'textAlign': 'left', 'backgroundColor': '#2A2A2A', 'color': '#D3D3D3'},
+                style_header={'backgroundColor': '#3A3A3A', 'fontWeight': 'bold', 'color': '#D3D3D3'}
+            )
+
+            # Stock Level Distribution
+            stock_fig = go.Figure(data=[go.Histogram(x=inventory_data['Stock Level'], marker_color='#A9A9A9')])
+            stock_fig.update_layout(
+                title='Stock Level Distribution',
+                xaxis_title='Stock Level',
+                yaxis_title='Number of Parts',
+                template='plotly_dark',
+                height=400
+            )
+
+            # Unit Cost Distribution
+            cost_fig = go.Figure(data=[go.Histogram(x=inventory_data['Unit Cost'], marker_color='#808080')])
+            cost_fig.update_layout(
+                title='Unit Cost Distribution',
+                xaxis_title='Unit Cost ($)',
+                yaxis_title='Number of Parts',
+                template='plotly_dark',
+                height=400
+            )
+            
             return html.Div([
-                dash_table.DataTable(
-                    data=inventory_display.to_dict('records'),
-                    columns=[{'name': col, 'id': col} for col in inventory_display.columns],
-                    style_table={'overflowX': 'auto'},
-                    style_cell={'textAlign': 'left', 'backgroundColor': '#2A2A2A', 'color': '#D3D3D3'},
-                    style_header={'backgroundColor': '#3A3A3A', 'fontWeight': 'bold', 'color': '#D3D3D3'}
-                ),
-                html.H4("Low Stock Alert", className="text-white"),
-                dcc.Graph(figure=fig) if not low_stock.empty else html.P("No low stock items", className="text-white")
+                html.H4("Inventory Overview", className="text-white"),
+                inventory_table,
+                html.Hr(),
+                html.H4("Low Stock Alerts", className="text-white"),
+                html.P("Parts with stock level at or below reorder level:", className="text-warning"),
+                low_stock_table,
+                html.Hr(),
+                dbc.Row([
+                    dbc.Col(dcc.Graph(figure=stock_fig), width=6),
+                    dbc.Col(dcc.Graph(figure=cost_fig), width=6)
+                ])
             ])
-        
+
         elif tab == 'tab-crm':
             if crm_data.empty:
-                return html.P("No data available for CRM", className="text-white")
-            line_chart_data = crm_data.copy()
-            line_chart_data['Contact Date'] = pd.to_datetime(line_chart_data['Contact Date'])
-            line_chart_data = line_chart_data.groupby('Contact Date')['Satisfaction Score'].mean().reset_index()
-            fig1 = go.Figure(data=[go.Scatter(x=line_chart_data['Contact Date'], y=line_chart_data['Satisfaction Score'], mode='lines+markers', line=dict(color='#A9A9A9'))])
-            fig1.update_layout(title='Satisfaction Over Time', xaxis_title='Contact Date', yaxis_title='Satisfaction Score', template='plotly_dark', xaxis=dict(tickangle=45), height=400)
-            fig2 = go.Figure()
-            for itype in crm_data['Interaction Type'].unique():
-                fig2.add_trace(go.Box(y=crm_data[crm_data['Interaction Type'] == itype]['Satisfaction Score'], name=itype))
-            fig2.update_layout(title='Satisfaction Score by Interaction Type', xaxis_title='Interaction Type', yaxis_title='Satisfaction Score', template='plotly_dark', xaxis=dict(tickangle=45), height=400)
-            crm_display = crm_data.copy()
-            crm_display['Contact Date'] = crm_display['Contact Date'].dt.strftime('%Y-%m-%d')
+                return html.P("No CRM data available.", className="text-white")
+            
+            crm_table = dash_table.DataTable(
+                data=crm_data.to_dict('records'),
+                columns=[{"name": i, "id": i} for i in crm_data.columns],
+                style_table={'overflowX': 'auto'},
+                style_cell={'textAlign': 'left', 'backgroundColor': '#2A2A2A', 'color': '#D3D3D3'},
+                style_header={'backgroundColor': '#3A3A3A', 'fontWeight': 'bold', 'color': '#D3D3D3'}
+            )
+
+            # Interaction Type Distribution
+            interaction_counts = crm_data['Interaction Type'].value_counts().reset_index()
+            interaction_counts.columns = ['Interaction Type', 'Count']
+            interaction_fig = go.Figure(data=[go.Bar(x=interaction_counts['Interaction Type'], y=interaction_counts['Count'], marker_color='#A9A9A9')])
+            interaction_fig.update_layout(
+                title='Interaction Type Distribution',
+                xaxis_title='Interaction Type',
+                yaxis_title='Count',
+                template='plotly_dark',
+                height=400
+            )
+
+            # Satisfaction Score Distribution
+            satisfaction_fig = go.Figure(data=[go.Histogram(x=crm_data['Satisfaction Score'], marker_color='#808080')])
+            satisfaction_fig.update_layout(
+                title='Satisfaction Score Distribution',
+                xaxis_title='Satisfaction Score',
+                yaxis_title='Number of Customers',
+                template='plotly_dark',
+                height=400
+            )
+            
             return html.Div([
-                dash_table.DataTable(
-                    data=crm_display.to_dict('records'),
-                    columns=[{'name': col, 'id': col} for col in crm_display.columns],
-                    style_table={'overflowX': 'auto'},
-                    style_cell={'textAlign': 'left', 'backgroundColor': '#2A2A2A', 'color': '#D3D3D3'},
-                    style_header={'backgroundColor': '#3A3A3A', 'fontWeight': 'bold', 'color': '#D3D3D3'}
-                ),
-                html.H4("Satisfaction Over Time", className="text-white"),
-                dcc.Graph(figure=fig1),
-                html.H4("Satisfaction Score by Interaction Type", className="text-white"),
-                dcc.Graph(figure=fig2)
+                html.H4("CRM Data Overview", className="text-white"),
+                crm_table,
+                html.Hr(),
+                dbc.Row([
+                    dbc.Col(dcc.Graph(figure=interaction_fig), width=6),
+                    dbc.Col(dcc.Graph(figure=satisfaction_fig), width=6)
+                ])
             ])
-        
+
         elif tab == 'tab-demo':
             if demo_data.empty:
-                return html.P("No data available for Demographics", className="text-white")
-            age_counts = demo_data['Age Group'].value_counts().reset_index()
-            age_counts.columns = ['Age Group', 'Count']
-            fig1 = go.Figure(data=[go.Bar(x=age_counts['Age Group'], y=age_counts['Count'], marker_color='#A9A9A9')])
-            fig1.update_layout(title='Age Group Distribution', xaxis_title='Age Group', yaxis_title='Count', template='plotly_dark', xaxis=dict(tickangle=45), height=400)
-            fig2 = go.Figure()
-            for region in demo_data['Region'].unique():
-                fig2.add_trace(go.Box(y=demo_data[demo_data['Region'] == region]['Purchase Amount'], name=region))
-            fig2.update_layout(title='Purchase Amount by Region', xaxis_title='Region', yaxis_title='Purchase Amount ($)', template='plotly_dark', xaxis=dict(tickangle=45), height=400)
-            demo_display = demo_data.copy()
-            demo_display['Purchase Amount'] = demo_display['Purchase Amount'].apply(lambda x: f"${x:,.2f}")
+                return html.P("No demographic data available.", className="text-white")
+            
+            demo_table = dash_table.DataTable(
+                data=demo_data.to_dict('records'),
+                columns=[{"name": i, "id": i} for i in demo_data.columns],
+                style_table={'overflowX': 'auto'},
+                style_cell={'textAlign': 'left', 'backgroundColor': '#2A2A2A', 'color': '#D3D3D3'},
+                style_header={'backgroundColor': '#3A3A3A', 'fontWeight': 'bold', 'color': '#D3D3D3'}
+            )
+
+            # Age Group Distribution
+            age_group_counts = demo_data['Age Group'].value_counts().reset_index()
+            age_group_counts.columns = ['Age Group', 'Count']
+            age_fig = go.Figure(data=[go.Bar(x=age_group_counts['Age Group'], y=age_group_counts['Count'], marker_color='#A9A9A9')])
+            age_fig.update_layout(
+                title='Customer Age Group Distribution',
+                xaxis_title='Age Group',
+                yaxis_title='Count',
+                template='plotly_dark',
+                height=400
+            )
+
+            # Preferred Car Make Distribution
+            preferred_make_counts = demo_data['Preferred Make'].value_counts().reset_index()
+            preferred_make_counts.columns = ['Preferred Make', 'Count']
+            make_fig = go.Figure(data=[go.Pie(labels=preferred_make_counts['Preferred Make'], values=preferred_make_counts['Count'])])
+            make_fig.update_layout(
+                title='Preferred Car Make Distribution',
+                template='plotly_dark',
+                height=400
+            )
+            
             return html.Div([
-                dash_table.DataTable(
-                    data=demo_display.to_dict('records'),
-                    columns=[{'name': col, 'id': col} for col in demo_display.columns],
-                    style_table={'overflowX': 'auto'},
-                    style_cell={'textAlign': 'left', 'backgroundColor': '#2A2A2A', 'color': '#D3D3D3'},
-                    style_header={'backgroundColor': '#3A3A3A', 'fontWeight': 'bold', 'color': '#D3D3D3'}
-                ),
-                html.H4("Age Group Distribution", className="text-white"),
-                dcc.Graph(figure=fig1),
-                html.H4("Purchase Amount by Region", className="text-white"),
-                dcc.Graph(figure=fig2)
+                html.H4("Customer Demographics Overview", className="text-white"),
+                demo_table,
+                html.Hr(),
+                dbc.Row([
+                    dbc.Col(dcc.Graph(figure=age_fig), width=6),
+                    dbc.Col(dcc.Graph(figure=make_fig), width=6)
+                ])
             ])
-        
+            
+        logging.info(f"Tab content rendered for {tab}")
+        return html.P("Select a tab to view content.", className="text-white")
     except Exception as e:
-        logging.error(f"Error rendering tab {tab}: {str(e)}")
-        return html.P(f"Error rendering tab: {str(e)}", className="text-white")
+        logging.error(f"Error rendering tab content for {tab}: {str(e)}")
+        return html.P(f"Error loading content: {str(e)}", className="text-danger")
 
 @app.callback(
     Output("download-csv", "data"),
     Input("download-btn", "n_clicks"),
     State("filtered-data", "data"),
-    prevent_initial_call=True
+    prevent_initial_call=True,
 )
-def download_csv(n_clicks, filtered_data):
+def download_data(n_clicks, data):
     try:
-        filtered_df = pd.read_json(filtered_data, orient='split') if filtered_data else pd.DataFrame()
-        if not filtered_df.empty:
-            csv_string = filtered_df.to_csv(index=False)
-            return dcc.send_data_frame(filtered_df.to_csv, "filtered_data.csv", index=False)
-        logging.info("Filtered data prepared for download")
+        filtered_df = pd.read_json(data, orient='split')
+        return dcc.send_data_frame(filtered_df.to_csv, "filtered_automotive_data.csv")
     except Exception as e:
-        logging.error(f"Error preparing CSV for download: {str(e)}")
+        logging.error(f"Error downloading data: {str(e)}")
         return None
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=True, host='0.0.0.0', port=8080)

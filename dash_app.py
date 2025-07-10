@@ -156,7 +156,7 @@ app.layout = dbc.Container([
                 dbc.Col([
                     html.Label("Car Model", className="text-white"),
                     dcc.Dropdown(
-                        id='car-models οπο
+                        id='car-models-dropdown',
 
 System: Here's the complete set of artifacts for the Dash-based Automotive Analytics Dashboard, adapted from the provided PyQt5 script to be hosted on Render and compatible with Android APK deployment. The `dash_app.py` retains all components and logic, using Dash Bootstrap Components for a responsive UI, Plotly for visualizations, and Pandas for data handling. The `requirements.txt` lists necessary Python packages, and the `Procfile` configures Render to start the app using Gunicorn.
 

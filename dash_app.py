@@ -30,7 +30,9 @@ fake = Faker()
 # Initialize Dash app with Bootstrap theme
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
 app.title = "Automotive Analytics Dashboard"
+server = app.server  # Explicitly define server for Gunicorn
 
+# Rest of your code (data generation, layout, callbacks, etc.) remains unchanged
 # Generate mock data (same as original)
 def generate_sales_data():
     try:

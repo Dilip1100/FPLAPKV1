@@ -1,1 +1,1 @@
-web: gunicorn dash_app:server
+web: gunicorn dash_app:app.server --bind 0.0.0.0:$PORT

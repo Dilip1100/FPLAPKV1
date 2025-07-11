@@ -3,6 +3,10 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html, dash_table
 from dash.dependencies import Input, Output, State
 import pandas as pd
+import numpy as np
+from faker import Faker
+import random
+from datetime import datetime
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 import logging
@@ -10,7 +14,7 @@ import os
 import base64
 import io
 
-# Set up logging (unchanged)
+# Set up logging
 log_dir = "/tmp/automotive_dashboard"
 os.makedirs(log_dir, exist_ok=True)
 log_file = os.path.join(log_dir, "dashboard.log")
@@ -20,25 +24,109 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
 
-# Initialize Dash app with CYBORG theme for a modern, sleek look
+# Initialize Faker
+fake = Faker()
+
+# Initialize Dash app with CYBORG theme
 app = dash.Dash(
     __name__,
     external_stylesheets=[
-        dbc.themes.CYBORG,  # Modern, dark theme
-        "https://use.fontawesome.com/releases/v5.15.4/css/all.css"  # Font Awesome for icons
+        dbc.themes.CYBORG,
+        "https://use.fontawesome.com/releases/v5.15.4/css/all.css"
     ]
 )
 app.title = "Automotive Analytics Dashboard"
-server = app.server
+server = app.server  # For Gunicorn
 
-# Data generation (unchanged)
-# [Include your existing generate_sales_data() and generate_fake_data() functions here]
+# Data generation functions
+def generate_sales_data():
+    try:
+        car_makes = ['Toyota', 'Honda', 'Ford', 'Chevrolet', 'BMW', 'Mercedes', 'Hyundai', 'Volkswagen']
+        car_models = {
+            'Toyota': ['Camry', 'Corolla', 'RAV4'],
+            'Honda': ['Civic', 'Accord', 'CR-V'],
+            'Ford': ['F-150', 'Mustang', 'Explorer'],
+            'Chevrolet': ['Silverado', 'Malibu', 'Equinox'],
+            'BMW': ['3 Series', '5 Series', 'X5'],
+            'Mercedes': ['C-Class', 'E-Class', 'GLC'],
+            'Hyundai': ['Elantra', 'Sonata', 'Tucson'],
+            'Volkswagen': ['Jetta', 'Passat', 'Tiguan']
+        }
+        salespeople = [fake.name() for _ in range(10)]
+        dates = pd.date_range(start="2023-01-01", end="2025-07-07", freq="D")
+        data = {
+            'Salesperson': [random.choice(salespeople) for _ in range(1000)],
+            'Car Make': [random.choice(car_makes) for _ in range(1000)],
+            'Car Year': [random.randint(2018, 2025) for _ in range(1000)],
+            'Date': [random.choice(dates) for _ in range(1000)],
+            'Sale Price': [round(random.uniform(15000, 100000), 2) for _ in range(1000)],
+            'Commission Earned': [round(random.uniform(500, 5000), 2) for _ in range(1000)]
+        }
+        df = pd.DataFrame(data)
+        df['Car Model'] = df['Car Make'].apply(lambda x: random.choice(car_models[x]))
+        df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+        df['Year'] = df['Date'].dt.year
+        df['Quarter'] = df['Date'].dt.to_period('Q').astype(str)
+        df['Month'] = df['Date'].dt.to_period('M').astype(str)
+        logging.info("Sales data generated successfully")
+        return df
+    except Exception as e:
+        logging.error(f"Error generating sales data: {str(e)}")
+        return pd.DataFrame()
 
-# Generate data (unchanged)
+def generate_fake_data(df):
+    try:
+        hr_data = pd.DataFrame({
+            "Employee ID": [f"E{1000+i}" for i in range(10)],
+            "Name": [fake.name() for _ in range(10)],
+            "Role": ["Sales Exec", "Manager", "Technician", "Clerk", "Sales Exec", "Technician", "HR", "Manager", "Clerk", "Sales Exec"],
+            "Department": ["Sales", "Sales", "Service", "Admin", "Sales", "Service", "HR", "Sales", "Admin", "Sales"],
+            "Join Date": pd.date_range(start="2018-01-01", periods=10, freq="180D"),
+            "Salary (USD)": [50000 + i*1500 for i in range(10)],
+            "Performance Score": [round(x, 1) for x in np.random.uniform(2.5, 5.0, 10)]
+        })
+        time_log_data = pd.DataFrame({
+            "Employee ID": np.random.choice(hr_data["Employee ID"], size=30, replace=True),
+            "Date": pd.date_range(end=pd.to_datetime("2025-07-07"), periods=30).tolist(),
+            "Clock In": [f"{np.random.randint(8, 10)}:{str(np.random.randint(0, 60)).zfill(2)} AM" for _ in range(30)],
+            "Clock Out": [f"{np.random.randint(4, 6)+12}:{str(np.random.randint(0, 60)).zfill(2)} PM" for _ in range(30)],
+            "Total Hours": [round(np.random.uniform(6.5, 9.5), 1) for _ in range(30)]
+        }).sort_values(by="Date", ascending=False)
+        inventory_data = pd.DataFrame({
+            "Part ID": [f"P{i:04d}" for i in range(1, 21)],
+            "Part Name": [fake.word().capitalize() + " " + random.choice(["Filter", "Brake", "Tire", "Battery", "Sensor", "Pump"]) for _ in range(20)],
+            "Car Make": [random.choice(df['Car Make'].dropna().unique()) for _ in range(20)],
+            "Stock Level": [random.randint(0, 150) for _ in range(20)],
+            "Reorder Level": [random.randint(10, 60) for _ in range(20)],
+            "Unit Cost": [round(random.uniform(20, 600), 2) for _ in range(20)]
+        })
+        end_date = datetime.strptime("2025-07-07", "%Y-%-m-%d")
+        crm_data = pd.DataFrame({
+            "Customer ID": [f"C{100+i}" for i in range(20)],
+            "Customer Name": [fake.name() for _ in range(20)],
+            "Contact Date": [fake.date_between(start_date="-1y", end_date=end_date) for _ in range(20)],
+            "Interaction Type": [random.choice(["Inquiry", "Complaint", "Follow-up", "Feedback", "Service Request"]) for _ in range(20)],
+            "Salesperson": [random.choice(df['Salesperson'].dropna().unique()) for _ in range(20)],
+            "Satisfaction Score": [round(random.uniform(1.0, 5.0), 1) for _ in range(20)]
+        })
+        demo_data = pd.DataFrame({
+            "Customer ID": [f"C{100+i}" for i in range(20)],
+            "Age Group": [random.choice(["18-25", "26-35", "36-45", "46-55", "55+"]) for _ in range(20)],
+            "Region": [fake.state() for _ in range(20)],
+            "Purchase Amount": [round(random.uniform(15000, 100000), 2) for _ in range(20)],
+            "Preferred Make": [random.choice(df['Car Make'].dropna().unique()) for _ in range(20)]
+        })
+        logging.info("Fake data generated successfully")
+        return hr_data, inventory_data, crm_data, demo_data, time_log_data
+    except Exception as e:
+        logging.error(f"Error generating fake data: {str(e)}")
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+
+# Generate data
 df = generate_sales_data()
 hr_data, inventory_data, crm_data, demo_data, time_log_data = generate_fake_data(df)
 
-# Custom CSS for additional styling
+# Custom CSS
 custom_css = """
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -65,20 +153,19 @@ body {
     text-align: center;
 }
 """
+# Save CSS to assets folder
+os.makedirs("assets", exist_ok=True)
+with open("assets/custom.css", "w") as f:
+    f.write(custom_css)
 
-# Inject custom CSS
-app.css.append_css({"external_url": "/assets/custom.css"})  # Assumes custom.css is saved in assets/
-
-# Layout with enhanced UI
+# Layout
 app.layout = dbc.Container([
-    # Sticky Header
     html.Div([
         html.H1(
             [html.I(className="fas fa-car mr-2"), "Automotive Analytics Dashboard"],
             className="text-center text-white mb-3",
             style={"fontWeight": "600"}
         ),
-        # Theme Toggle
         html.Div([
             dbc.Button(
                 [html.I(className="fas fa-sun mr-1"), "Toggle Theme"],
@@ -90,7 +177,6 @@ app.layout = dbc.Container([
         ], className="text-right"),
     ], className="sticky-header"),
 
-    # Collapsible Filter Section
     dbc.Card([
         dbc.CardHeader(
             html.Div([
@@ -230,7 +316,6 @@ app.layout = dbc.Container([
         )
     ], className="mb-4 card"),
 
-    # Metrics Section with Enhanced Styling
     dbc.Card([
         dbc.CardHeader(
             html.Div([
@@ -280,7 +365,6 @@ app.layout = dbc.Container([
         ])
     ], className="mb-4 card"),
 
-    # Tabs with Icons
     dcc.Tabs(id="tabs", value='tab-kpi', children=[
         dcc.Tab(label='KPI Trend', value='tab-kpi', children=[html.I(className="fas fa-chart-line mr-1")]),
         dcc.Tab(label='3D Sales', value='tab-3d', children=[html.I(className="fas fa-cube mr-1")]),
@@ -300,7 +384,6 @@ app.layout = dbc.Container([
         children=html.Div(id='tabs-content')
     ),
 
-    # Download and Export Section
     html.Div([
         dbc.Button(
             [html.I(className="fas fa-download mr-1"), "Download Data as CSV"],
@@ -308,16 +391,9 @@ app.layout = dbc.Container([
             color="secondary",
             className="mr-2 mb-3"
         ),
-        dbc.Button(
-            [html.I(className="fas fa-image mr-1"), "Export Charts as PNG"],
-            id="export-charts",
-            color="secondary",
-            className="mb-3"
-        ),
         dcc.Download(id="download-csv"),
     ], className="text-center"),
 
-    # Toast for Notifications
     dbc.Toast(
         id="notification-toast",
         header="Notification",
@@ -327,66 +403,76 @@ app.layout = dbc.Container([
         style={"position": "fixed", "top": 10, "right": 10, "width": 350}
     ),
 
-    # Footer
     html.Footer(
         "© 2025 One Trust | Crafted for smarter auto-financial decisions",
         className="text-center text-muted mt-4",
         style={"fontSize": "0.9em"}
     ),
 
-    # Store filtered data and theme
     dcc.Store(id='filtered-data'),
     dcc.Store(id='theme-state', data='dark')
 ], fluid=True)
 
-# Callback for Collapsible Filters
+# Callbacks
 @app.callback(
-    Output('collapse-filters', 'is_open'),
-    Input('collapse-button', 'n_clicks'),
-    State('collapse-filters', 'is_open')
+    Output('car-models-dropdown', 'options'),
+    Input('car-makes-dropdown', 'value')
 )
-def toggle_collapse(n_clicks, is_open):
-    if n_clicks:
-        return not is_open
-    return is_open
+def update_car_models(car_make):
+    try:
+        options = [{'label': 'All', 'value': 'All'}]
+        if car_make != 'All':
+            models = sorted(df[df['Car Make'] == car_make]['Car Model'].dropna().unique())
+            options.extend([{'label': x, 'value': x} for x in models])
+        logging.info(f"Car models updated for {car_make}")
+        return options
+    except Exception as e:
+        logging.error(f"Error updating car models: {str(e)}")
+        return [{'label': 'All', 'value': 'All'}]
 
-# Callback for Reset Filters
 @app.callback(
     [
-        Output('salespeople-dropdown', 'value'),
-        Output('car-makes-dropdown', 'value'),
-        Output('car-models-dropdown', 'value'),
-        Output('car-years-dropdown', 'value'),
-        Output('metric-dropdown', 'value'),
+        Output('filtered-data', 'data'),
+        Output('total-sales', 'children'),
+        Output('total-commission', 'children'),
+        Output('avg-price', 'children'),
+        Output('trans-count', 'children'),
         Output('notification-toast', 'is_open'),
         Output('notification-toast', 'children')
     ],
-    Input('reset-filters', 'n_clicks'),
-    prevent_initial_call=True
+    [
+        Input('apply-filters', 'n_clicks'),
+        State('salespeople-dropdown', 'value'),
+        State('car-makes-dropdown', 'value'),
+        State('car-models-dropdown', 'value'),
+        State('car-years-dropdown', 'value')
+    ]
 )
-def reset_filters(n_clicks):
-    if n_clicks:
-        return 'All', 'All', 'All', 'All', 'Sale Price', True, "Filters reset successfully!"
-    return dash.no_update
+def apply_filters(n_clicks, salesperson, car_make, car_model, car_year):
+    try:
+        if n_clicks is None:
+            return df.to_json(date_format='iso', orient='split'), "Total Sales: $0", "Total Commission: $0", "Avg Sale Price: $0", "Transactions: 0", False, ""
+        filtered_df = df.copy()
+        if salesperson != 'All':
+            filtered_df = filtered_df[filtered_df['Salesperson'] == salesperson]
+        if car_make != 'All':
+            filtered_df = filtered_df[filtered_df['Car Make'] == car_make]
+        if car_model != 'All':
+            filtered_df = filtered_df[filtered_df['Car Model'] == car_model]
+        if car_year != 'All':
+            filtered_df = filtered_df[filtered_df['Car Year'].astype(str) == car_year]
+        
+        total_sales = f"Total Sales: ${filtered_df['Sale Price'].sum():,.0f}"
+        total_comm = f"Total Commission: ${filtered_df['Commission Earned'].sum():,.0f}"
+        avg_price = f"Avg Sale Price: ${filtered_df['Sale Price'].mean():,.0f}" if not filtered_df.empty else "Avg Sale Price: $0"
+        trans_count = f"Transactions: {filtered_df.shape[0]:,}"
+        
+        logging.info("Filters applied successfully")
+        return filtered_df.to_json(date_format='iso', orient='split'), total_sales, total_comm, avg_price, trans_count, True, "Filters applied successfully!"
+    except Exception as e:
+        logging.error(f"Error applying filters: {str(e)}")
+        return df.to_json(date_format='iso', orient='split'), "Total Sales: $0", "Total Commission: $0", "Avg Sale Price: $0", "Transactions: 0", True, f"Error: {str(e)}"
 
-# Callback for Theme Toggle (client-side for performance)
-app.clientside_callback(
-    """
-    function(n_clicks, current_theme) {
-        if (n_clicks) {
-            const newTheme = current_theme === 'dark' ? 'light' : 'dark';
-            document.body.className = newTheme + '-theme';
-            return newTheme;
-        }
-        return current_theme;
-    }
-    """,
-    Output('theme-state', 'data'),
-    Input('theme-toggle', 'n_clicks'),
-    State('theme-state', 'data')
-)
-
-# Modified Tabs Content Callback for Chart Export and Enhanced Plotly Config
 @app.callback(
     Output('tabs-content', 'children'),
     [
@@ -398,8 +484,6 @@ app.clientside_callback(
 def render_tab_content(tab, filtered_data, metric):
     try:
         filtered_df = pd.read_json(filtered_data, orient='split') if filtered_data else pd.DataFrame()
-        
-        # Plotly config for all charts
         plotly_config = {
             'displayModeBar': True,
             'modeBarButtonsToAdd': ['downloadImage'],
@@ -438,17 +522,91 @@ def render_tab_content(tab, filtered_data, metric):
             )
             return dcc.Graph(figure=fig, config=plotly_config)
         
-        # [Other tab content remains similar but with updated colors and config]
-        # For brevity, only KPI tab is shown with updates. Apply similar styling (colors, hover, config) to other tabs.
-
+        elif tab == 'tab-3d':
+            if filtered_df.empty:
+                return html.P("No data available for 3D Sales", className="text-white")
+            scatter_data = filtered_df.sample(n=min(100, len(filtered_df)), random_state=1)
+            fig = go.Figure(data=[
+                go.Scatter3d(
+                    x=scatter_data['Commission Earned'], 
+                    y=scatter_data['Sale Price'], 
+                    z=scatter_data['Car Year'],
+                    mode='markers', 
+                    marker=dict(size=5, color=scatter_data['Car Year'], colorscale='Viridis', showscale=True)
+                )
+            ])
+            fig.update_layout(
+                scene=dict(xaxis_title='Commission Earned ($)', yaxis_title='Sale Price ($)', zaxis_title='Car Year'),
+                template='plotly_dark', 
+                height=450
+            )
+            return dcc.Graph(figure=fig, config=plotly_config)
+        
+        # [Other tabs remain similar; apply plotly_config and consistent styling]
         logging.info(f"Tab content rendered for {tab}")
         return html.P("Select a tab to view content.", className="text-white")
     except Exception as e:
         logging.error(f"Error rendering tab content for {tab}: {str(e)}")
         return html.P(f"Error loading content: {str(e)}", className="text-danger")
 
-# Existing Callbacks (unchanged unless modified above)
-# [Include your existing callbacks for car models, filters, download, etc.]
+@app.callback(
+    Output('collapse-filters', 'is_open'),
+    Input('collapse-button', 'n_clicks'),
+    State('collapse-filters', 'is_open')
+)
+def toggle_collapse(n_clicks, is_open):
+    if n_clicks:
+        return not is_open
+    return is_open
+
+@app.callback(
+    [
+        Output('salespeople-dropdown', 'value'),
+        Output('car-makes-dropdown', 'value'),
+        Output('car-models-dropdown', 'value'),
+        Output('car-years-dropdown', 'value'),
+        Output('metric-dropdown', 'value'),
+        Output('notification-toast', 'is_open'),
+        Output('notification-toast', 'children')
+    ],
+    Input('reset-filters', 'n_clicks'),
+    prevent_initial_call=True
+)
+def reset_filters(n_clicks):
+    if n_clicks:
+        return 'All', 'All', 'All', 'All', 'Sale Price', True, "Filters reset successfully!"
+    return dash.no_update
+
+@app.callback(
+    Output("download-csv", "data"),
+    Input("download-btn", "n_clicks"),
+    State("filtered-data", "data"),
+    prevent_initial_call=True,
+)
+def download_data(n_clicks, data):
+    try:
+        filtered_df = pd.read_json(data, orient='split')
+        return dcc.send_data_frame(filtered_df.to_csv, "filtered_automotive_data.csv")
+    except Exception as e:
+        logging.error(f"Error downloading data: {str(e)}")
+        return None
+
+# Client-side callback for theme toggle
+app.clientside_callback(
+    """
+    function(n_clicks, current_theme) {
+        if (n_clicks) {
+            const newTheme = current_theme === 'dark' ? 'light' : 'dark';
+            document.body.className = newTheme + '-theme';
+            return newTheme;
+        }
+        return current_theme;
+    }
+    """,
+    Output('theme-state', 'data'),
+    Input('theme-toggle', 'n_clicks'),
+    State('theme-state', 'data')
+)
 
 if __name__ == '__main__':
-    app.run_server(debug=True, host='0.0.0.0', port=8080)
+    app.run_server(debug=True, host='0.0.0.0', port=8050)

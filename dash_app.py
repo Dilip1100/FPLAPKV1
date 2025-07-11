@@ -199,10 +199,10 @@ body {
 .card-body, .tab-content {
     animation: fadeIn 0.5s ease-in;
 }
-.btn-primary, .btn-secondary {
+.btn-primary, .btn-secondary, .btn-danger {
     transition: background-color 0.3s, transform 0.2s;
 }
-.btn-primary:hover, .btn-secondary:hover {
+.btn-primary:hover, .btn-secondary:hover, .btn-danger:hover {
     transform: scale(1.05);
 }
 .back-to-top {
@@ -855,7 +855,6 @@ def render_tab_content(tab, filtered_data, metric, reset_n_clicks):
                 )
             ]
 
-        # [Add other tabs as needed with similar styling and accessibility]
         logging.info(f"Tab content rendered for {tab}")
         return html.P("Select a tab to view content.", className="text-white")
     except Exception as e:
